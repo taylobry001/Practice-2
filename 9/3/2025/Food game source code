@@ -1,0 +1,72 @@
+import time
+import random
+
+# Flavor texts
+q1 = "Let's both be real — this isn't gonna reverse everything."
+q2 = "Just plain and dry."
+q3 = "Great with a bit of salt."
+q4 = "Legendary"
+q5 = "VALID PLAYA — that's a cool drink."
+q6 = "My recipe just for you."
+
+
+# Item pool and weights
+items = [
+    'Burger', 'Salad', 'french fry', 'tomatoe', 'ULTRA Slushie',
+    'Apple', 'Pizza Slice', 'Onion Rings', 'Soggy Lettuce', 'GOLDEN Nugget',
+    'Ultra NICHE ICE cream', 'Mysterious Meatball', 'Sludge', 'Fried Egg'
+]
+
+weights = [
+    20, 30, 10, 26.5, 0.08,
+    25, 8, 8, 20, 0.05,
+    0.02, 8, 65, 0.4
+]
+
+# Start loop
+while True:
+    input("\nPress [Enter] to get your food (or Ctrl+C to stop)...")
+
+    time.sleep(0.1)
+    choice = random.choices(items, weights=weights, k=1)[0]
+    print(f"\n🍽️ You got: {choice}")
+
+    if choice == 'Salad':
+        print(f"Common 20%: {q1}")
+
+    if choice == 'Burger':
+        print(f"Common 50%: {q2}")
+
+    if choice == 'tomatoe':
+        print(f"Rare 26.5%: {q3}")
+
+    if choice == 'french fry':
+        print(f"Legendary 10%: Crispy and victorious.")
+
+    if choice == 'ULTRA Slushie':
+        print(f"Secret??? {q5}")
+
+    if choice == 'Ultra NICHE ICE cream':
+        print(f"Secret??? {q6}")
+
+    if choice == 'Apple':
+        print("Common 20%: Keeps doctors away — or so they say.")
+
+    if choice == 'Pizza Slice':
+        print("Rare 1%: Dripping with nostalgia and grease.")
+
+    if choice == 'Onion Rings':
+        print("Legendary 10%: The crunchy halo of the deep fryer.")
+
+    if choice == 'Soggy Lettuce':
+        print("Common 25%: Someone left this out way too long.")
+
+    if choice == 'GOLDEN Nugget':
+        print("Secret??? Found deep in the mines of flavor.")
+
+    if choice == 'Mysterious Meatball':
+        print("Rare 1%: Could be beef. Could be... something else.")
+    if choice == 'Sludge':
+        print("SUPER COMMON 60%: They feed people that?")
+    if choice == 'Fried Egg':
+        print("Mythical 0.5% :Nice runny egg at 6am.")
