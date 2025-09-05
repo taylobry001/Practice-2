@@ -1,27 +1,25 @@
-#Add data stores next 
 import time
 import random
 
 # Flavor texts
-q1 = "Let's both be real — this isn't gonna reverse everything."
-q2 = "Just plain and dry."
-q3 = "Great with a bit of salt."
-q4 = "Legendary"
-q5 = "VALID PLAYA — that's a cool drink."
-q6 = "My recipe just for you."
-
+q1 = "Just sad... 🥗"
+q2 = "Just plain and dry. 🍞"
+q3 = "Great with a bit of salt. 🧂🍅"
+q4 = "Legendary 🌟"
+q5 = "VALID PLAYA — that's a cool drink. 🧊😎"
+q6 = "My recipe just for you. 🍨🎯"
 
 # Item pool and weights
 items = [
     'Burger', 'Salad', 'french fry', 'tomatoe', 'ULTRA Slushie',
     'Apple', 'Pizza Slice', 'Onion Rings', 'Soggy Lettuce', 'GOLDEN Nugget',
-    'Ultra NICHE ICE cream', 'Mysterious Meatball', 'Sludge', 'Fried Egg'
+    'Ultra NICHE ICE cream', 'Mysterious Meatball', 'Sludge', 'Fried Egg', 'Chefs hat'
 ]
 
 weights = [
     20, 30, 10, 26.5, 0.08,
     25, 8, 8, 20, 0.05,
-    0.02, 8, 65, 0.4
+    0.02, 8, 65, 0.4, 0.0008
 ]
 
 # Start loop
@@ -42,35 +40,37 @@ while True:
         print(f"Rare 12.0%: {q3}")
 
     if choice == 'french fry':
-        print(f"Legendary 4.5%: Crispy and victorious.")
+        print(f"Legendary 4.5%: Crispy and victorious. 🍟🏆")
 
     if choice == 'ULTRA Slushie':
         print(f"Secret??? 0.04%: {q5}")
 
     if choice == 'Ultra NICHE ICE cream':
-        print(f"Secret??? 0.009%: {q6}")
+        print(f"Niche??? 0.009%: {q6}")
 
     if choice == 'Apple':
-        print("Common 11.4%: Keeps doctors away — or so they say.")
+        print("Common 11.4%: Keeps doctors away — or so they say. 🍏💪")
 
     if choice == 'Pizza Slice':
-        print("Rare 3.6%: Dripping with nostalgia and grease.")
+        print("Rare 3.6%: Dripping with nostalgia and grease. 🍕🕰️")
 
     if choice == 'Onion Rings':
-        print("Legendary 3.6%: The crunchy halo of the deep fryer.")
+        print("Legendary 3.6%: The crunchy halo of the deep fryer. 🧅🔥")
 
     if choice == 'Soggy Lettuce':
-        print("Common 9.1%: Someone left this out way too long.")
+        print("Common 9.1%: Someone left this out way too long. 🥬😬")
 
     if choice == 'GOLDEN Nugget':
-        print("Secret??? 0.02%: Found deep in the mines of flavor.")
+        print("Secret??? 0.02%: Found deep in the mines of flavor. 🪙✨")
 
     if choice == 'Mysterious Meatball':
-        print("Rare 3.6%: Could be beef. Could be... something else.")
+        print("Rare 3.6%: Could be beef. Could be... something else. 🍖❓")
 
     if choice == 'Sludge':
-        print("SUPER COMMON 29.5%: They feed people that?")
+        print("SUPER COMMON 29.5%: They feed people that? 🐌️")
 
     if choice == 'Fried Egg':
-        print("Mythical 0.18% :Nice runny egg at 6am.")
+        print("Mythical 0.18%: Nice runny egg at 6am. 🍳⏰")
 
+    if choice == 'Chefs hat':
+        print("Niche 0.08%: He would never leave his hat... I guess you're lucky. 👨‍🍳🎩")
