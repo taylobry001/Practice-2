@@ -1,6 +1,5 @@
 import time
 import random
-
 # Flavor texts
 q1 = "Just sad... 🥗"
 q2 = "Just plain and dry. 🍞"
@@ -8,69 +7,199 @@ q3 = "Great with a bit of salt. 🧂🍅"
 q4 = "Legendary 🌟"
 q5 = "VALID PLAYA — that's a cool drink. 🧊😎"
 q6 = "My recipe just for you. 🍨🎯"
-
 # Item pool and weights
 items = [
-    'Burger', 'Salad', 'french fry', 'tomatoe', 'ULTRA Slushie',
-    'Apple', 'Pizza Slice', 'Onion Rings', 'Soggy Lettuce', 'GOLDEN Nugget',
-    'Ultra NICHE ICE cream', 'Mysterious Meatball', 'Sludge', 'Fried Egg', 'Chefs hat'
+ 'Burger', 'Salad', 'french fry', 'tomatoe', 'ULTRA Slushie',
+ 'Apple', 'Pizza Slice', 'Onion Rings', 'Soggy Lettuce', 'GOLDEN Nugget',
+ 'Ultra NICHE ICE cream', 'Mysterious Meatball', 'Sludge', 'Fried Egg', 'Chefs hat', 'Bread crumbs',
+ 'Banana', 'Strawberry', 'Pineapple', 'Watermelon', 'Mango',
+ 'Peach', 'Cherry', 'Kiwi', 'Lemon', 'Coconut',
+ 'Chocolate Cake', 'Chips and Salsa', 'Fried Rice', 'Ramen', 'Tacos',
+ 'Donut', 'Popcorn', 'Pancakes', 'Cheese', 'Ice Cream Sundae',
+ 'Avocado', 'Blueberry', 'Blackberry', 'Grapes', 'Guava',
+ 'Honeydew', 'Lime', 'Nectarine', 'Olives', 'Papaya',
+ 'Pear', 'Plum', 'Pomegranate', 'Pumpkin Pie', 'Quiche',
+ 'Sushi', 'Toast', 'Waffles', 'Yogurt', 'Zucchini Bread',
+ 'Carrot Sticks', 'Celery Sticks', 'Boiled Corn', 'Oatmeal', 'Cucumber Slices',
+ 'Granola Bar', 'Apple Sauce', 'Peanut Butter', 'Rice Cakes', 'Fruit Salad',
+ # High rarity foods
+ 'Golden Truffle', 'Mystic Macaron', 'Celestial Sorbet', 'Dragonfruit Tart', 'Enchanted Eclair',
+ 'Phantom Pudding', 'Cosmic Crème Brûlée', 'Divine Doughnut', 'Secret Saffron Rice', 'Noble Nougat'
 ]
-
 weights = [
-    20, 30, 10, 26.5, 0.08,
-    25, 8, 8, 20, 0.05,
-    0.02, 8, 65, 0.4, 0.0008
+ 20, 25, 12, 15, 0.05,
+ 18, 8, 8, 15, 0.03,
+ 0.02, 8, 50, 0.4, 0.0008, 35,
+ 20, 18, 16, 14, 13,
+ 13, 13, 10, 8, 7,
+ 0.1, 9, 10, 9, 8,
+ 7, 6, 6, 5, 4,
+ 13, 11, 10, 10, 9,
+ 8, 8, 8, 8, 7,
+ 7, 7, 6, 5, 4,
+ 8, 10, 10, 12, 7,
+ 15, 15, 14, 14, 13,
+ 13, 12, 12, 11, 10,
+ 0.03, 0.02, 0.01, 0.02, 0.015,
+ 0.01, 0.008, 0.005, 0.004, 0.003
 ]
 
 # Start loop
 while True:
-    input("\nPress [Enter] to get your food (or Ctrl+C to stop)...")
+ input("\nPress [Enter] to get your food (or Ctrl+C to stop)...")
+ time.sleep(0.1)
+ choice = random.choices(items, weights=weights, k=1)[0]
+ print(f"\n🍽️ You got: {choice}")
+ if choice == 'Salad':
+  print(f"Common 13.6%: {q1}")
+ if choice == 'Burger':
+  print(f"Common 9.1%: {q2}")
+ if choice == 'tomatoe':
+  print(f"Uncommon 12.0%: {q3}")
+ if choice == 'french fry':
+  print(f"Legendary 1%: Crispy and victorious. 🍟🏆")
+ if choice == 'ULTRA Slushie':
+  print(f"Secret??? 0.05%: {q5}")
+ if choice == 'Ultra NICHE ICE cream':
+  print(f"Niche??? 0.02%: {q6}")
+ if choice == 'Apple':
+  print("Common 11.4%: Keeps doctors away — or so they say. 🍏💪")
+ if choice == 'Pizza Slice':
+  print("Uncommon 8%: Dripping with nostalgia and grease. 🍕🕰️")
+ if choice == 'Onion Rings':
+  print("Uncommon 8%: The crunchy halo of the deep fryer. 🧅🔥")
+ if choice == 'Soggy Lettuce':
+  print("Common 10%: Someone left this out way too long. 🥬😬")
+ if choice == 'GOLDEN Nugget':
+  print("Secret??? 0.03%: Found deep in the mines of flavor. 🪙✨")
+ if choice == 'Mysterious Meatball':
+  print("Uncommon 8%: Pretty dry, honestly. 🍖😐")
+ if choice == 'Sludge':
+  print("Common 30.0%: Possibly food, possibly fuel. 🛢️")
+ if choice == 'Fried Egg':
+  print("Rare 8%: Sunny side of danger. 🍳⚠️")
+ if choice == 'Chefs hat':
+  print("Niche??? 0.0008%: You ARE the chef now. 👨‍🍳👑")
+ if choice == 'Bread crumbs':
+  print("Common 19%: Trail snacks. Or bait. 🍞🧩")
+ if choice == 'Banana':
+  print("Common 10%: Perfectly curved for max snackability. 🍌")
+ if choice == 'Strawberry':
+  print("Common 9%: Sweet and slightly dramatic. 🍓")
+ if choice == 'Pineapple':
+  print("Uncommon 8%: Spiky outside, party inside. 🍍")
+ if choice == 'Watermelon':
+  print("Uncommon 8%: Summer in a slice. 🍉🌞")
+ if choice == 'Mango':
+  print("Uncommon 8%: Slippery, messy, totally worth it. 🥭")
+ if choice == 'Peach':
+  print("Uncommon 8%: Fuzzy on the outside, juicy in the middle. 🍑")
+ if choice == 'Cherry':
+  print("Uncommon 8%: Sweet little troublemaker. 🍒")
+ if choice == 'Kiwi':
+  print("Uncommon 8%: Fuzzy, tart, and underrated. 🥝")
+ if choice == 'Lemon':
+  print("Rare 8%: Sour power! 🍋💥")
+ if choice == 'Coconut':
+  print("Rare 8%: Crack it open for greatness. 🥥🏝️")
+ if choice == 'Chocolate Cake':
+  print("Divine 0.1%: Layers of forbidden joy. 🍰👑")
+ if choice == 'Donut':
+  print("Secret??? 0.05%: A frosted ring of cosmic energy. 🍩✨")
+ if choice == 'Ice Cream Sundae':
+  print("Niche??? 0.02%: Melts in your mouth and in your soul. 🍨🌀")
+ if choice == 'Pancakes':
+  print("Legendary 0.1%: Syrup-soaked dreams. 🥞💤")
+ if choice == 'Popcorn':
+  print("Legendary 1%: Each pop is a prophecy. 🍿🔥")
+ if choice == 'Chips and Salsa':
+  print("Uncommon 8%: Crunch, dip, repeat. 🌶️🕺")
+ if choice == 'Fried Rice':
+  print("Uncommon 8%: Every grain tells a story. 🍚📖")
+ if choice == 'Ramen':
+  print("Uncommon 8%: Brothy goodness in every slurp. 🍜🍥")
+ if choice == 'Tacos':
+  print("Uncommon 8%: Tiny tortillas of greatness. 🌮👑")
+ if choice == 'Cheese':
+  print("Rare 8%: Smells weird, tastes elite. 🧀🔝")
+ if choice == 'Avocado':
+  print("Uncommon 8%: Creamy green goodness. 🥑💚")
+ if choice == 'Blueberry':
+  print("Uncommon 8%: Tiny bursts of magic. 🫐✨")
+ if choice == 'Blackberry':
+  print("Uncommon 8%: Dark and mysterious flavor. 🖤🍇")
+ if choice == 'Grapes':
+  print("Common 10%: Juicy little globes of fun. 🍇🎉")
+ if choice == 'Guava':
+  print("Rare 8%: Tropical sweet tartness. 🍈🌴")
+ if choice == 'Honeydew':
+  print("Common 9%: Sweet melon coolness. 🍈❄️")
+ if choice == 'Lime':
+  print("Rare 8%: Tangy and zesty punch. 🍋⚡")
+ if choice == 'Nectarine':
+  print("Uncommon 8%: Smooth peach vibes. 🍑🌸")
+ if choice == 'Olives':
+  print("Uncommon 8%: Salty and sophisticated. 🫒🧂")
+ if choice == 'Papaya':
+  print("Rare 8%: Exotic and refreshing. 🍈🔥")
+ if choice == 'Pear':
+  print("Common 10%: Sweet and grainy delight. 🍐🙂")
+ if choice == 'Plum':
+  print("Uncommon 8%: Tart and juicy treasure. 🍑💎")
+ if choice == 'Pomegranate':
+  print("Rare 8%: Ruby seeds of health. ❤️🍒")
+ if choice == 'Pumpkin Pie':
+  print("Legendary 1%: Autumn's sweetest blessing. 🎃🥧")
+ if choice == 'Quiche':
+  print("Rare 8%: Savory and sophisticated. 🥧👌")
+ if choice == 'Sushi':
+  print("Uncommon 8%: Bite-sized ocean adventure. 🍣🌊")
+ if choice == 'Toast':
+  print("Common 12%: Crunchy morning classic. 🍞☀️")
+ if choice == 'Waffles':
+  print("Uncommon 8%: Crispy grid of joy. 🧇😋")
+ if choice == 'Yogurt':
+  print("Common 10%: Tangy and smooth. 🥛😌")
+ if choice == 'Zucchini Bread':
+  print("Uncommon 8%: Sneaky veggie sweetness. 🍞🥒")
+ if choice == 'Carrot Sticks':
+  print("Common 15%: Crunchy and healthy. 🥕💪")
+ if choice == 'Celery Sticks':
+  print("Common 15%: Crisp and refreshing. 🌿💦")
+ if choice == 'Boiled Corn':
+  print("Common 14%: Sweet kernels of sunshine. 🌽☀️")
+ if choice == 'Oatmeal':
+  print("Common 14%: Warm and comforting. 🥣🔥")
+ if choice == 'Cucumber Slices':
+  print("Common 13%: Cool and hydrating. 🥒❄️")
+ if choice == 'Granola Bar':
+  print("Common 13%: Energy on the go. 🍫🏃‍♂️")
+ if choice == 'Apple Sauce':
+  print("Common 12%: Smooth and sweet. 🍏🍯")
+ if choice == 'Peanut Butter':
+  print("Common 12%: Nutty goodness. 🥜❤️")
+ if choice == 'Rice Cakes':
+  print("Common 11%: Light and crispy. 🍚👌")
+ if choice == 'Fruit Salad':
+  print("Common 10%: A little bit of everything. 🍇🍍🍓")
+ if choice == 'Golden Truffle':
+  print("Legendary 0.03%: Earth’s rarest jewel. 🍄💎")
+ if choice == 'Mystic Macaron':
+  print("Secret??? 0.02%: Sweet secrets from Paris. 🥐✨")
+ if choice == 'Celestial Sorbet':
+  print("Divine 0.01%: Frozen stars on your tongue. ❄️🌠")
+ if choice == 'Dragonfruit Tart':
+  print("Legendary 0.02%: Exotic flames wrapped in crust. 🐉🥧")
+ if choice == 'Enchanted Eclair':
+  print("Niche??? 0.015%: Magic wrapped in chocolate. ✨🍫")
+ if choice == 'Phantom Pudding':
+  print("Secret??? 0.01%: Ghostly deliciousness. 👻🍮")
+ if choice == 'Cosmic Crème Brûlée':
+  print("Divine 0.008%: Burnt sugar from another dimension. 🌌🔥")
+ if choice == 'Divine Doughnut':
+  print("Divine 0.005%: Holy glaze, heavenly taste. 🍩😇")
+ if choice == 'Secret Saffron Rice':
+  print("Secret??? 0.004%: Golden grains of mystery. 🌾🧡")
+ if choice == 'Noble Nougat':
+  print("Niche??? 0.003%: Regal sweetness in every bite. 👑🍬")
 
-    time.sleep(0.1)
-    choice = random.choices(items, weights=weights, k=1)[0]
-    print(f"\n🍽️ You got: {choice}")
-
-    if choice == 'Salad':
-        print(f"Common 13.6%: {q1}")
-
-    if choice == 'Burger':
-        print(f"Common 9.1%: {q2}")
-
-    if choice == 'tomatoe':
-        print(f"Rare 12.0%: {q3}")
-
-    if choice == 'french fry':
-        print(f"Legendary 4.5%: Crispy and victorious. 🍟🏆")
-
-    if choice == 'ULTRA Slushie':
-        print(f"Secret??? 0.04%: {q5}")
-
-    if choice == 'Ultra NICHE ICE cream':
-        print(f"Niche??? 0.009%: {q6}")
-
-    if choice == 'Apple':
-        print("Common 11.4%: Keeps doctors away — or so they say. 🍏💪")
-
-    if choice == 'Pizza Slice':
-        print("Rare 3.6%: Dripping with nostalgia and grease. 🍕🕰️")
-
-    if choice == 'Onion Rings':
-        print("Legendary 3.6%: The crunchy halo of the deep fryer. 🧅🔥")
-
-    if choice == 'Soggy Lettuce':
-        print("Common 9.1%: Someone left this out way too long. 🥬😬")
-
-    if choice == 'GOLDEN Nugget':
-        print("Secret??? 0.02%: Found deep in the mines of flavor. 🪙✨")
-
-    if choice == 'Mysterious Meatball':
-        print("Rare 3.6%: Could be beef. Could be... something else. 🍖❓")
-
-    if choice == 'Sludge':
-        print("SUPER COMMON 29.5%: They feed people that? 🐌️")
-
-    if choice == 'Fried Egg':
-        print("Mythical 0.18%: Nice runny egg at 6am. 🍳⏰")
-
-    if choice == 'Chefs hat':
-        print("Niche 0.08%: He would never leave his hat... I guess you're lucky. 👨‍🍳🎩")
