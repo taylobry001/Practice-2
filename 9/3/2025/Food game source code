@@ -1,16 +1,16 @@
+
 import time
 import random
 from collections import defaultdict
 
 # -------------------------
-# Game Implementation (class-based for testability)
+# Game Implementation
 # -------------------------
 class FoodGachaGame:
     def __init__(self, rng_seed=None):
-        # Use instance RNG so tests are deterministic when seeded
         self.rng = random.Random(rng_seed)
 
-        # Flavor texts (kept for charm)
+        # Flavor texts
         self.q1 = "Just sad... 🥗"
         self.q2 = "Just plain and dry. 🍞"
         self.q3 = "Great with a bit of salt. 🧂🍅"
@@ -23,7 +23,7 @@ class FoodGachaGame:
             # Commons
             'Burger', 'Salad', 'Apple', 'Soggy Lettuce', 'Bread crumbs', 'Banana', 'Strawberry', 'Grapes', 'Honeydew',
             'Pear', 'Toast', 'Yogurt', 'Carrot Sticks', 'Celery Sticks', 'Boiled Corn', 'Oatmeal', 'Cucumber Slices',
-            'Granola Bar', 'Apple Sauce', 'Peanut Butter', 'Rice Cakes', 'Fruit Salad','Jelly'
+            'Granola Bar', 'Apple Sauce', 'Peanut Butter', 'Rice Cakes', 'Fruit Salad','Jelly',
             # Uncommons
             'tomatoe', 'Pizza Slice', 'Onion Rings', 'Mysterious Meatball', 'Pineapple', 'Watermelon', 'Mango', 'Peach',
             'Cherry', 'Kiwi', 'Chips and Salsa', 'Fried Rice', 'Ramen', 'Tacos', 'Avocado', 'Blueberry', 'Blackberry',
@@ -83,15 +83,15 @@ class FoodGachaGame:
             tuple(sorted(['Bread crumbs','Cheese'])): 'Cheese Sandwich',
             tuple(sorted(['Banana','Chocolate Cake'])): 'Banana Split',
             tuple(sorted(['Rice Cakes','Peanut Butter'])): 'PB Rice Cake',
-            tuple(sorted(['tomatoe','Cheese','Bread crumbs'])): 'Bruschetta'
+            tuple(sorted(['tomatoe','Cheese','Bread crumbs'])): 'Bruschetta',
             tuple(sorted(['Peanut Butter', 'Jelly', 'Bread crumbs'])): 'PB Sandwich'
         }
 
         # Mini-quests
         self.quests = {
-            'Fruit Trio': {'required': ['Banana','Strawberry','Mango'], 'reward_free_rolls': 1},
-            'Fast Food Fan': {'required': ['Burger','Pizza Slice','Tacos'], 'achievement': '🍔 Fast Food King'}
-            'Noblity': {'required': ['Noble Nougat', 'Secret Saffron Rice'],'achievement': 'reward_free_rolls': 5}
+            'Fruit Trio': {'required': ['Banana','Strawberry','Mango'], 'achievement': '🍌🍓🥭 Fast Food King'},
+            'Fast Food Fan': {'required': ['Burger','Pizza Slice','Tacos'], 'achievement': '🍔 Fast Food King'},
+            'Noblity': {'required': ['Noble Nougat', 'Secret Saffron Rice'], 'achievement': '👑 Persian Nobility'},
         }
 
     # ---------- Helpers ----------
@@ -128,9 +128,14 @@ class FoodGachaGame:
         r = self.get_rarity(item)
         stars = self.rarity_stars(r)
 
-        if r in ['Legendary', 'Secret']:
-            print("\n🌟✨✨✨ A RARE FIND! ✨✨✨🌟")
+        if r in ['Secret']:
+            print("\n🌟✨✨✨ A SECRET FIND!!!✨🌟")
         print(f"\n🍽️ You got: {item} [{r} {stars}]")
+        
+        if r in ['Legendary']:
+            print("\n🌟✨✨✨ A LEGNDARY FIND! ✨🌟")
+        print(f"\n🍽️ You got: {item} [{r} {stars}]")
+        
 
         if self.inventory[item] > 1:
             print(f"(Again?! The {item} loves you 😅)")
@@ -193,16 +198,16 @@ class FoodGachaGame:
     def _check_achievements(self):
         total_known = set(self.items) | set(self.combos.values())
         if total_known.issubset(self.food_dex):
-            self.achievements.add('🍽️ Master Chef — Collected All Foods!')
+            self.achievements.add('🍽👨‍🍳️ Master Chef — Collected All Foods!')
         if all(x in self.food_dex for x in ['Banana','Strawberry','Mango']):
             self.achievements.add('🥭 Fruit Master')
         if all(x in self.food_dex for x in ['Golden Truffle','Dragonfruit Tart']):
             self.achievements.add('💎 Legendary Connoisseur')
-        if all(x in self.food_dex for x in ['Golden Nugget', 'Divine Doughnut']):
-             self.achievements.add('GOLDEN Donut')
-        if all(x in self.food_dex for x in ['Secret Saffron Rice', 'Fried Egg'])
-             self.achievements.add('Egg fried Saffron Rice')
-            
+        if all(x in self.food_dex for x in ['GOLDEN Nugget', 'Divine Doughnut']):
+            self.achievements.add('✨🍩 GOLDEN Donut')
+        if all(x in self.food_dex for x in ['Secret Saffron Rice', 'Fried Egg']):
+            self.achievements.add('🍳🥘Egg fried Saffron Rice')
+
     # ---------- UI helpers ----------
     def show_dex(self):
         print(f"\n📖 Food Dex: {len(self.food_dex)}/{len(set(self.items) | set(self.combos.values()))} discovered")
@@ -223,7 +228,6 @@ class FoodGachaGame:
 # -------------------------
 # Main execution
 # -------------------------
-
 def main():
     g = FoodGachaGame(rng_seed=42)
 
@@ -231,7 +235,7 @@ def main():
     while True:
         cmd = input("\n>> ").strip()
 
-        if cmd == "":   # just pressing Enter
+        if cmd == "":
             g.roll()
         elif cmd == "10":
             g.multi_pull(10)
@@ -261,3 +265,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
