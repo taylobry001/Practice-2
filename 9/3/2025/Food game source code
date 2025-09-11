@@ -1,205 +1,444 @@
+"""
+Food Gacha Game (Non-interactive / Sandbox-safe version)
+
+This file is a drop-in replacement for the original "Food Gacha Game" script but rewritten
+so it does NOT call input() by default (input() causes OSError in sandboxed environments).
+
+Features:
+ - Rarity system with visual stars
+ - Pity system (guaranteed Rare+ every 10 pulls)
+ - Food Dex that tracks discovered foods and counts
+ - Multi-pulls (batch rolls)
+ - Combos & Evolutions (combine pulled items into new items)
+ - Duplicate reactions
+ - Mini-quests and achievements
+ - Simulated command mode (safe for non-interactive environments)
+ - A small test-suite that runs in simulated mode to verify core features
+
+How to use:
+ - By default the script runs in SIMULATED mode (no input()). This avoids the OSError
+   in sandboxed environments. To provide custom commands, either:
+     1) create a file named `commands.txt` with one command per line, or
+     2) edit SIMULATED_COMMANDS below.
+ - To run interactively on your own machine (where input() works), set SIMULATED = False
+   at the top of this file. The script will then try to fall back to interactive input
+   if a TTY is available.
+
+Commands supported in simulation & interactive mode:
+ - "" (empty string) or "pull" or "1" -> single pull
+ - "10" or "multi" or "multi N" -> multi-pull (default 10 if no N given)
+ - "FORCE <item name>" -> force-add an item (useful for testing combos)
+ - "dex" -> show Food Dex
+ - "ach" -> show achievements
+ - "help" -> show commands
+ - "quit" -> exit
+ - "test" -> run built-in tests (only in SIMULATED mode by default)
+
+Note: This file was rewritten to fix the OSError caused by input() in sandboxed environments.
+"""
+
+import os
+import sys
 import time
 import random
-# Flavor texts
-q1 = "Just sad... 🥗"
-q2 = "Just plain and dry. 🍞"
-q3 = "Great with a bit of salt. 🧂🍅"
-q4 = "Legendary 🌟"
-q5 = "VALID PLAYA — that's a cool drink. 🧊😎"
-q6 = "My recipe just for you. 🍨🎯"
-# Item pool and weights
-items = [
- 'Burger', 'Salad', 'french fry', 'tomatoe', 'ULTRA Slushie',
- 'Apple', 'Pizza Slice', 'Onion Rings', 'Soggy Lettuce', 'GOLDEN Nugget',
- 'Ultra NICHE ICE cream', 'Mysterious Meatball', 'Sludge', 'Fried Egg', 'Chefs hat', 'Bread crumbs',
- 'Banana', 'Strawberry', 'Pineapple', 'Watermelon', 'Mango',
- 'Peach', 'Cherry', 'Kiwi', 'Lemon', 'Coconut',
- 'Chocolate Cake', 'Chips and Salsa', 'Fried Rice', 'Ramen', 'Tacos',
- 'Donut', 'Popcorn', 'Pancakes', 'Cheese', 'Ice Cream Sundae',
- 'Avocado', 'Blueberry', 'Blackberry', 'Grapes', 'Guava',
- 'Honeydew', 'Lime', 'Nectarine', 'Olives', 'Papaya',
- 'Pear', 'Plum', 'Pomegranate', 'Pumpkin Pie', 'Quiche',
- 'Sushi', 'Toast', 'Waffles', 'Yogurt', 'Zucchini Bread',
- 'Carrot Sticks', 'Celery Sticks', 'Boiled Corn', 'Oatmeal', 'Cucumber Slices',
- 'Granola Bar', 'Apple Sauce', 'Peanut Butter', 'Rice Cakes', 'Fruit Salad',
- # High rarity foods
- 'Golden Truffle', 'Mystic Macaron', 'Celestial Sorbet', 'Dragonfruit Tart', 'Enchanted Eclair',
- 'Phantom Pudding', 'Cosmic Crème Brûlée', 'Divine Doughnut', 'Secret Saffron Rice', 'Noble Nougat'
-]
-weights = [
- 20, 25, 12, 15, 0.05,
- 18, 8, 8, 15, 0.03,
- 0.02, 8, 50, 0.4, 0.0008, 35,
- 20, 18, 16, 14, 13,
- 13, 13, 10, 8, 7,
- 0.1, 9, 10, 9, 8,
- 7, 6, 6, 5, 4,
- 13, 11, 10, 10, 9,
- 8, 8, 8, 8, 7,
- 7, 7, 6, 5, 4,
- 8, 10, 10, 12, 7,
- 15, 15, 14, 14, 13,
- 13, 12, 12, 11, 10,
- 0.03, 0.02, 0.01, 0.02, 0.015,
- 0.01, 0.008, 0.005, 0.004, 0.003
+from collections import defaultdict
+
+# -------------------------
+# Configuration
+# -------------------------
+# Run in simulated mode by default to avoid input() in restricted environments.
+SIMULATED = True
+# If you want interactive mode on your local machine, set SIMULATED = False.
+# SIMULATED = False
+
+# Default simulated commands (will be used if commands.txt is missing)
+SIMULATED_COMMANDS = [
+    '',                 # single pull
+    '10',               # multi-pull (10)
+    'FORCE Bread crumbs',
+    'FORCE Cheese',     # should trigger a combo (Cheese Sandwich)
+    'dex',
+    'ach',
+    'multi 5',
+    'FORCE Golden Truffle',
+    'FORCE Golden Truffle', # duplicate reaction & achievement triggers
+    'dex',
+    'test',             # run built-in tests (safe, deterministic)
+    'quit'
 ]
 
-# Start loop
-while True:
- input("\nPress [Enter] to get your food (or Ctrl+C to stop)...")
- time.sleep(0.1)
- choice = random.choices(items, weights=weights, k=1)[0]
- print(f"\n🍽️ You got: {choice}")
- if choice == 'Salad':
-  print(f"Common 13.6%: {q1}")
- if choice == 'Burger':
-  print(f"Common 9.1%: {q2}")
- if choice == 'tomatoe':
-  print(f"Uncommon 12.0%: {q3}")
- if choice == 'french fry':
-  print(f"Legendary 1%: Crispy and victorious. 🍟🏆")
- if choice == 'ULTRA Slushie':
-  print(f"Secret??? 0.05%: {q5}")
- if choice == 'Ultra NICHE ICE cream':
-  print(f"Niche??? 0.02%: {q6}")
- if choice == 'Apple':
-  print("Common 11.4%: Keeps doctors away — or so they say. 🍏💪")
- if choice == 'Pizza Slice':
-  print("Uncommon 8%: Dripping with nostalgia and grease. 🍕🕰️")
- if choice == 'Onion Rings':
-  print("Uncommon 8%: The crunchy halo of the deep fryer. 🧅🔥")
- if choice == 'Soggy Lettuce':
-  print("Common 10%: Someone left this out way too long. 🥬😬")
- if choice == 'GOLDEN Nugget':
-  print("Secret??? 0.03%: Found deep in the mines of flavor. 🪙✨")
- if choice == 'Mysterious Meatball':
-  print("Uncommon 8%: Pretty dry, honestly. 🍖😐")
- if choice == 'Sludge':
-  print("Common 30.0%: Possibly food, possibly fuel. 🛢️")
- if choice == 'Fried Egg':
-  print("Rare 8%: Sunny side of danger. 🍳⚠️")
- if choice == 'Chefs hat':
-  print("Niche??? 0.0008%: You ARE the chef now. 👨‍🍳👑")
- if choice == 'Bread crumbs':
-  print("Common 19%: Trail snacks. Or bait. 🍞🧩")
- if choice == 'Banana':
-  print("Common 10%: Perfectly curved for max snackability. 🍌")
- if choice == 'Strawberry':
-  print("Common 9%: Sweet and slightly dramatic. 🍓")
- if choice == 'Pineapple':
-  print("Uncommon 8%: Spiky outside, party inside. 🍍")
- if choice == 'Watermelon':
-  print("Uncommon 8%: Summer in a slice. 🍉🌞")
- if choice == 'Mango':
-  print("Uncommon 8%: Slippery, messy, totally worth it. 🥭")
- if choice == 'Peach':
-  print("Uncommon 8%: Fuzzy on the outside, juicy in the middle. 🍑")
- if choice == 'Cherry':
-  print("Uncommon 8%: Sweet little troublemaker. 🍒")
- if choice == 'Kiwi':
-  print("Uncommon 8%: Fuzzy, tart, and underrated. 🥝")
- if choice == 'Lemon':
-  print("Rare 8%: Sour power! 🍋💥")
- if choice == 'Coconut':
-  print("Rare 8%: Crack it open for greatness. 🥥🏝️")
- if choice == 'Chocolate Cake':
-  print("Divine 0.1%: Layers of forbidden joy. 🍰👑")
- if choice == 'Donut':
-  print("Secret??? 0.05%: A frosted ring of cosmic energy. 🍩✨")
- if choice == 'Ice Cream Sundae':
-  print("Niche??? 0.02%: Melts in your mouth and in your soul. 🍨🌀")
- if choice == 'Pancakes':
-  print("Legendary 0.1%: Syrup-soaked dreams. 🥞💤")
- if choice == 'Popcorn':
-  print("Legendary 1%: Each pop is a prophecy. 🍿🔥")
- if choice == 'Chips and Salsa':
-  print("Uncommon 8%: Crunch, dip, repeat. 🌶️🕺")
- if choice == 'Fried Rice':
-  print("Uncommon 8%: Every grain tells a story. 🍚📖")
- if choice == 'Ramen':
-  print("Uncommon 8%: Brothy goodness in every slurp. 🍜🍥")
- if choice == 'Tacos':
-  print("Uncommon 8%: Tiny tortillas of greatness. 🌮👑")
- if choice == 'Cheese':
-  print("Rare 8%: Smells weird, tastes elite. 🧀🔝")
- if choice == 'Avocado':
-  print("Uncommon 8%: Creamy green goodness. 🥑💚")
- if choice == 'Blueberry':
-  print("Uncommon 8%: Tiny bursts of magic. 🫐✨")
- if choice == 'Blackberry':
-  print("Uncommon 8%: Dark and mysterious flavor. 🖤🍇")
- if choice == 'Grapes':
-  print("Common 10%: Juicy little globes of fun. 🍇🎉")
- if choice == 'Guava':
-  print("Rare 8%: Tropical sweet tartness. 🍈🌴")
- if choice == 'Honeydew':
-  print("Common 9%: Sweet melon coolness. 🍈❄️")
- if choice == 'Lime':
-  print("Rare 8%: Tangy and zesty punch. 🍋⚡")
- if choice == 'Nectarine':
-  print("Uncommon 8%: Smooth peach vibes. 🍑🌸")
- if choice == 'Olives':
-  print("Uncommon 8%: Salty and sophisticated. 🫒🧂")
- if choice == 'Papaya':
-  print("Rare 8%: Exotic and refreshing. 🍈🔥")
- if choice == 'Pear':
-  print("Common 10%: Sweet and grainy delight. 🍐🙂")
- if choice == 'Plum':
-  print("Uncommon 8%: Tart and juicy treasure. 🍑💎")
- if choice == 'Pomegranate':
-  print("Rare 8%: Ruby seeds of health. ❤️🍒")
- if choice == 'Pumpkin Pie':
-  print("Legendary 1%: Autumn's sweetest blessing. 🎃🥧")
- if choice == 'Quiche':
-  print("Rare 8%: Savory and sophisticated. 🥧👌")
- if choice == 'Sushi':
-  print("Uncommon 8%: Bite-sized ocean adventure. 🍣🌊")
- if choice == 'Toast':
-  print("Common 12%: Crunchy morning classic. 🍞☀️")
- if choice == 'Waffles':
-  print("Uncommon 8%: Crispy grid of joy. 🧇😋")
- if choice == 'Yogurt':
-  print("Common 10%: Tangy and smooth. 🥛😌")
- if choice == 'Zucchini Bread':
-  print("Uncommon 8%: Sneaky veggie sweetness. 🍞🥒")
- if choice == 'Carrot Sticks':
-  print("Common 15%: Crunchy and healthy. 🥕💪")
- if choice == 'Celery Sticks':
-  print("Common 15%: Crisp and refreshing. 🌿💦")
- if choice == 'Boiled Corn':
-  print("Common 14%: Sweet kernels of sunshine. 🌽☀️")
- if choice == 'Oatmeal':
-  print("Common 14%: Warm and comforting. 🥣🔥")
- if choice == 'Cucumber Slices':
-  print("Common 13%: Cool and hydrating. 🥒❄️")
- if choice == 'Granola Bar':
-  print("Common 13%: Energy on the go. 🍫🏃‍♂️")
- if choice == 'Apple Sauce':
-  print("Common 12%: Smooth and sweet. 🍏🍯")
- if choice == 'Peanut Butter':
-  print("Common 12%: Nutty goodness. 🥜❤️")
- if choice == 'Rice Cakes':
-  print("Common 11%: Light and crispy. 🍚👌")
- if choice == 'Fruit Salad':
-  print("Common 10%: A little bit of everything. 🍇🍍🍓")
- if choice == 'Golden Truffle':
-  print("Legendary 0.03%: Earth’s rarest jewel. 🍄💎")
- if choice == 'Mystic Macaron':
-  print("Secret??? 0.02%: Sweet secrets from Paris. 🥐✨")
- if choice == 'Celestial Sorbet':
-  print("Divine 0.01%: Frozen stars on your tongue. ❄️🌠")
- if choice == 'Dragonfruit Tart':
-  print("Legendary 0.02%: Exotic flames wrapped in crust. 🐉🥧")
- if choice == 'Enchanted Eclair':
-  print("Niche??? 0.015%: Magic wrapped in chocolate. ✨🍫")
- if choice == 'Phantom Pudding':
-  print("Secret??? 0.01%: Ghostly deliciousness. 👻🍮")
- if choice == 'Cosmic Crème Brûlée':
-  print("Divine 0.008%: Burnt sugar from another dimension. 🌌🔥")
- if choice == 'Divine Doughnut':
-  print("Divine 0.005%: Holy glaze, heavenly taste. 🍩😇")
- if choice == 'Secret Saffron Rice':
-  print("Secret??? 0.004%: Golden grains of mystery. 🌾🧡")
- if choice == 'Noble Nougat':
-  print("Niche??? 0.003%: Regal sweetness in every bite. 👑🍬")
+# If commands.txt exists, we'll prefer that (one command per line)
+COMMANDS_FILE = 'commands.txt'
 
+# -------------------------
+# Game Implementation (class-based for testability)
+# -------------------------
+class FoodGachaGame:
+    def __init__(self, rng_seed=None):
+        # Use instance RNG so tests are deterministic when seeded
+        self.rng = random.Random(rng_seed)
+
+        # Flavor texts (kept for charm)
+        self.q1 = "Just sad... 🥗"
+        self.q2 = "Just plain and dry. 🍞"
+        self.q3 = "Great with a bit of salt. 🧂🍅"
+        self.q4 = "Legendary 🌟"
+        self.q5 = "VALID PLAYA — that's a cool drink. 🧊😎"
+        self.q6 = "My recipe just for you. 🍨🎯"
+
+        # Item pools (copied and cleaned from the original script)
+        self.items = [
+            # Commons
+            'Burger', 'Salad', 'Apple', 'Soggy Lettuce', 'Bread crumbs', 'Banana', 'Strawberry', 'Grapes', 'Honeydew',
+            'Pear', 'Toast', 'Yogurt', 'Carrot Sticks', 'Celery Sticks', 'Boiled Corn', 'Oatmeal', 'Cucumber Slices',
+            'Granola Bar', 'Apple Sauce', 'Peanut Butter', 'Rice Cakes', 'Fruit Salad',
+            # Uncommons
+            'tomatoe', 'Pizza Slice', 'Onion Rings', 'Mysterious Meatball', 'Pineapple', 'Watermelon', 'Mango', 'Peach',
+            'Cherry', 'Kiwi', 'Chips and Salsa', 'Fried Rice', 'Ramen', 'Tacos', 'Avocado', 'Blueberry', 'Blackberry',
+            'Nectarine', 'Olives', 'Plum', 'Sushi', 'Waffles', 'Zucchini Bread',
+            # Rares
+            'Fried Egg', 'Lemon', 'Coconut', 'Cheese', 'Guava', 'Lime', 'Papaya', 'Pomegranate', 'Quiche',
+            # Legendaries
+            'french fry', 'Popcorn', 'Pancakes', 'Pumpkin Pie', 'Golden Truffle', 'Dragonfruit Tart',
+            # Secrets / Niche / Divine
+            'ULTRA Slushie', 'GOLDEN Nugget', 'Ultra NICHE ICE cream', 'Chefs hat', 'Chocolate Cake', 'Donut',
+            'Ice Cream Sundae', 'Mystic Macaron', 'Celestial Sorbet', 'Enchanted Eclair', 'Phantom Pudding',
+            'Cosmic Crème Brûlée', 'Divine Doughnut', 'Secret Saffron Rice', 'Noble Nougat'
+        ]
+
+        # Rarity classification (explicit lists for clarity)
+        self.rarity = {
+            'Common': ['Burger','Salad','Apple','Soggy Lettuce','Bread crumbs','Banana','Strawberry','Grapes','Honeydew',
+                       'Pear','Toast','Yogurt','Carrot Sticks','Celery Sticks','Boiled Corn','Oatmeal','Cucumber Slices',
+                       'Granola Bar','Apple Sauce','Peanut Butter','Rice Cakes','Fruit Salad'],
+            'Uncommon': ['tomatoe','Pizza Slice','Onion Rings','Mysterious Meatball','Pineapple','Watermelon','Mango','Peach',
+                         'Cherry','Kiwi','Chips and Salsa','Fried Rice','Ramen','Tacos','Avocado','Blueberry','Blackberry',
+                         'Nectarine','Olives','Plum','Sushi','Waffles','Zucchini Bread'],
+            'Rare': ['Fried Egg','Lemon','Coconut','Cheese','Guava','Lime','Papaya','Pomegranate','Quiche'],
+            'Legendary': ['french fry','Popcorn','Pancakes','Pumpkin Pie','Golden Truffle','Dragonfruit Tart'],
+            'Secret': ['ULTRA Slushie','GOLDEN Nugget','Ultra NICHE ICE cream','Chefs hat','Chocolate Cake','Donut',
+                       'Ice Cream Sundae','Mystic Macaron','Celestial Sorbet','Enchanted Eclair','Phantom Pudding',
+                       'Cosmic Crème Brûlée','Divine Doughnut','Secret Saffron Rice','Noble Nougat']
+        }
+
+        # Precompute weights aligned to items list
+        self.weights = []
+        for food in self.items:
+            if food in self.rarity['Common']:
+                self.weights.append(15)
+            elif food in self.rarity['Uncommon']:
+                self.weights.append(8)
+            elif food in self.rarity['Rare']:
+                self.weights.append(4)
+            elif food in self.rarity['Legendary']:
+                self.weights.append(0.5)
+            elif food in self.rarity['Secret']:
+                self.weights.append(0.05)
+            else:
+                # default fallback
+                self.weights.append(1)
+
+        # Trackers
+        self.inventory = defaultdict(int)   # item -> count
+        self.food_dex = set()               # unique items discovered (includes combined items)
+        self.pulls = 0
+        self.pity_counter = 0
+        self.achievements = set()
+        self.completed_quests = set()
+        self.extra_rolls = 0                # rolls awarded by quests
+
+        # Combos: when these ingredients are present, they combine into a new special item
+        # For simplicity each combo uses 1 unit of each ingredient
+        self.combos = {
+            tuple(sorted(['Bread crumbs','Cheese'])): 'Cheese Sandwich',
+            tuple(sorted(['Banana','Chocolate Cake'])): 'Banana Split',
+            tuple(sorted(['Rice Cakes','Peanut Butter'])): 'PB Rice Cake',
+            tuple(sorted(['tomatoe','Cheese','Bread crumbs'])): 'Bruschetta'
+        }
+
+        # Mini-quests
+        self.quests = {
+            'Fruit Trio': {'required': ['Banana','Strawberry','Mango'], 'reward_free_rolls': 1},
+            'Fast Food Fan': {'required': ['Burger','Pizza Slice','Tacos'], 'achievement': '🍔 Fast Food King'}
+        }
+
+    # ---------- Helpers ----------
+    def get_rarity(self, item):
+        for r, pool in self.rarity.items():
+            if item in pool:
+                return r
+        return 'Common'
+
+    def rarity_stars(self, r):
+        return {
+            'Common': '⭐',
+            'Uncommon': '⭐⭐',
+            'Rare': '⭐⭐⭐',
+            'Legendary': '🌟🌟🌟🌟',
+            'Secret': '✨✨✨✨✨'
+        }.get(r, '⭐')
+
+    # ---------- Core actions ----------
+    def roll(self):
+        """Perform one gacha roll. Returns (item, rarity)."""
+        self.pulls += 1
+        self.pity_counter += 1
+
+        # Pity: guaranteed Rare or better every 10 pulls
+        if self.pity_counter >= 10:
+            choices = list(self.rarity['Rare']) + list(self.rarity['Legendary']) + list(self.rarity['Secret'])
+            item = self.rng.choice(choices)
+            self.pity_counter = 0
+        else:
+            item = self.rng.choices(self.items, weights=self.weights, k=1)[0]
+
+        # Add to inventory + dex
+        self.inventory[item] += 1
+        self.food_dex.add(item)
+
+        r = self.get_rarity(item)
+        stars = self.rarity_stars(r)
+
+        # ASCII effect for high rarity
+        if r in ['Legendary', 'Secret']:
+            print("\n🌟✨✨✨ A RARE FIND! ✨✨✨🌟")
+
+        print(f"\n🍽️ You got: {item} [{r} {stars}]")
+
+        # Duplicate reaction
+        if self.inventory[item] > 1:
+            print(f"(Again?! The {item} loves you 😅)")
+
+        # Check combos, quests, achievements, and process any extra rolls
+        self._process_post_roll()
+
+        return item, r
+
+    def multi_pull(self, n=10):
+        results = []
+        print(f"\n🔮 Rolling {n} times...")
+        for _ in range(n):
+            results.append(self.roll())
+            # small pacing; in sandbox it's fine but can be removed
+            time.sleep(0.05)
+        return results
+
+    def force_add(self, item):
+        """Directly add an item (useful for testing combos or seeding the player's inventory)."""
+        if item not in self.items and item not in self.combos.values():
+            print(f"(Warning) Forcing unknown item: {item} — adding to dex/inventory anyway.")
+        self.inventory[item] += 1
+        self.food_dex.add(item)
+        print(f"\n[FORCED] Added: {item}")
+        # After force-add we still want combos/quests to trigger
+        self._process_post_roll(force=True)
+
+    # ---------- Post-roll processing ----------
+    def _process_post_roll(self, force=False):
+        # Check for combos first (they may consume ingredients)
+        self._check_combos()
+        # Check quests which may award extra rolls or achievements
+        self._check_quests()
+        # Check achievements
+        self._check_achievements()
+        # Process extra rolls if awarded
+        while self.extra_rolls > 0:
+            self.extra_rolls -= 1
+            print('\n🎁 Quest reward: bonus roll!')
+            # Use a direct roll but avoid infinite recursion (roll handles its own extra rolls)
+            self.roll()
+
+    def _check_combos(self):
+        # Look for possible combos; allow multiple repetitions if ingredients permit
+        changed = True
+        while changed:
+            changed = False
+            for req_tuple, result in list(self.combos.items()):
+                # req_tuple is a tuple of ingredient names (sorted)
+                reqs = list(req_tuple)
+                # Check if we have at least 1 of each required ingredient
+                if all(self.inventory.get(r, 0) >= 1 for r in reqs):
+                    # Consume one of each ingredient
+                    for r in reqs:
+                        self.inventory[r] -= 1
+                        if self.inventory[r] <= 0:
+                            # keep 0 instead of negative
+                            del self.inventory[r]
+                    # Add the combined item
+                    self.inventory[result] += 1
+                    self.food_dex.add(result)
+                    print(f"\n🧩 Combo Unlocked: {result} (from {', '.join(reqs)})")
+                    changed = True
+                    # After finding a combo, break to re-evaluate from start (handles overlapping combos safely)
+                    break
+
+    def _check_quests(self):
+        for name, desc in self.quests.items():
+            if name in self.completed_quests:
+                continue
+            required = desc.get('required', [])
+            if all(self.inventory.get(r, 0) >= 1 for r in required):
+                print(f"\n✅ Quest completed: {name}")
+                self.completed_quests.add(name)
+                # rewards
+                if desc.get('reward_free_rolls'):
+                    self.extra_rolls += desc['reward_free_rolls']
+                if desc.get('achievement'):
+                    self.achievements.add(desc['achievement'])
+
+    def _check_achievements(self):
+        # Master Chef: collected all base items + combined items
+        total_known = set(self.items) | set(self.combos.values())
+        if total_known.issubset(self.food_dex):
+            self.achievements.add('🍽️ Master Chef — Collected All Foods!')
+
+        # Example achievements
+        if all(x in self.food_dex for x in ['Banana','Strawberry','Mango']):
+            self.achievements.add('🥭 Fruit Master')
+        if all(x in self.food_dex for x in ['Golden Truffle','Dragonfruit Tart']):
+            self.achievements.add('💎 Legendary Connoisseur')
+
+    # ---------- UI helpers ----------
+    def show_dex(self):
+        print(f"\n📖 Food Dex: {len(self.food_dex)}/{len(set(self.items) | set(self.combos.values()))} discovered")
+        # Show counts in inventory for readability
+        rows = []
+        for item in sorted(self.food_dex):
+            rows.append(f"{item} x{self.inventory.get(item, 0)}")
+        print(', '.join(rows) if rows else '(none)')
+
+    def show_achievements(self):
+        self._check_achievements()
+        if self.achievements:
+            print('\n🏆 Achievements:')
+            for a in sorted(self.achievements):
+                print(f"- {a}")
+        else:
+            print('\nNo achievements yet!')
+
+    # ---------- Simulation runner ----------
+    def run_commands(self, commands):
+        """Execute a list of textual commands (does not use input()).
+        Returns when 'quit' command is encountered or commands are exhausted.
+        """
+        for raw in commands:
+            cmd = raw.strip()
+            print(f"\n> simulated input: {cmd}")
+
+            # support various synonyms
+            if cmd == '' or cmd.lower() in ('1', 'pull', 'enter'):
+                self.roll()
+            elif cmd.lower().startswith('multi'):
+                # allow 'multi' or 'multi N'
+                parts = cmd.split()
+                n = 10
+                if len(parts) >= 2 and parts[1].isdigit():
+                    n = int(parts[1])
+                self.multi_pull(n)
+            elif cmd.lower() == '10':
+                self.multi_pull(10)
+            elif cmd.lower().startswith('force '):
+                item = cmd[6:]
+                self.force_add(item)
+            elif cmd.lower() == 'dex':
+                self.show_dex()
+            elif cmd.lower() == 'ach':
+                self.show_achievements()
+            elif cmd.lower() in ('help', '?'):
+                print('\nCommands: [Enter/pull] single, 10 or multi N, FORCE <item>, dex, ach, test, quit')
+            elif cmd.lower() == 'test':
+                # run deterministic self-tests
+                run_tests()
+            elif cmd.lower() == 'quit':
+                print('\nExiting simulation...')
+                break
+            else:
+                print(f"(unknown command: {cmd})")
+
+# -------------------------
+# Built-in tests (deterministic)
+# -------------------------
+
+def run_tests():
+    print('\n--- Running built-in tests (deterministic) ---')
+
+    # Test 1: combo creation via force_add
+    g = FoodGachaGame(rng_seed=123)
+    g.force_add('Bread crumbs')
+    g.force_add('Cheese')
+    assert 'Cheese Sandwich' in g.food_dex, 'Combo test failed: Cheese Sandwich not created'
+    print('Test 1 passed: Combo creation (Cheese Sandwich)')
+
+    # Test 2: pity system guarantees Rare+ on 10th pull
+    g2 = FoodGachaGame(rng_seed=1)
+    g2.pity_counter = 9
+    item, r = g2.roll()
+    assert r in ('Rare', 'Legendary', 'Secret'), f'Pity test failed: got rarity {r}'
+    print('Test 2 passed: Pity system (10th pull guaranteed Rare+)')
+
+    # Test 3: duplicate detection increments inventory
+    g3 = FoodGachaGame(rng_seed=2)
+    g3.force_add('Golden Truffle')
+    g3.force_add('Golden Truffle')
+    assert g3.inventory['Golden Truffle'] >= 2, 'Duplicate test failed: inventory not incremented'
+    print('Test 3 passed: Duplicate inventory increments')
+
+    print('All tests passed!')
+    print('--- End tests ---\n')
+
+# -------------------------
+# Main execution
+# -------------------------
+
+def main():
+    # Prepare commands list (prefer commands.txt if present)
+    commands = []
+    if os.path.exists(COMMANDS_FILE):
+        try:
+            with open(COMMANDS_FILE, 'r', encoding='utf-8') as f:
+                commands = [line.rstrip('\n') for line in f if line.strip() != '']
+            print(f"Loaded {len(commands)} commands from {COMMANDS_FILE}")
+        except OSError:
+            print(f"Could not read {COMMANDS_FILE}; falling back to built-in simulated commands.")
+            commands = SIMULATED_COMMANDS.copy()
+    else:
+        commands = SIMULATED_COMMANDS.copy()
+
+    # If SIMULATED is False and a TTY is present, fall back to the original interactive loop
+    g = FoodGachaGame(rng_seed=42)
+
+    if not SIMULATED:
+        try:
+            if sys.stdin.isatty():
+                print('Interactive mode: type commands (press Enter for a single pull). Type "quit" to exit.')
+                while True:
+                    cmd = input("\nPress [Enter] for 1 pull, type '10' for multi-pull, 'dex' to view Food Dex, 'ach' for achievements, or 'quit' to stop: ").strip()
+                    if cmd == '':
+                        g.roll()
+                    elif cmd.lower() == 'quit':
+                        break
+                    else:
+                        g.run_commands([cmd])
+                return
+        except Exception:
+            print('Interactive input not available; switching to simulated mode.')
+
+    # Simulated / file-driven execution (safe in sandbox)
+    print('\nStarting simulated run (no interactive input)\n')
+    g.run_commands(commands)
+
+    # Final summary
+    print('\n--- Session Summary ---')
+    print(f'Total pulls performed: {g.pulls}')
+    print(f'Unique items discovered: {len(g.food_dex)}')
+    if g.food_dex:
+        print('Sample of discovered items:', ', '.join(sorted(list(g.food_dex))[:10]))
+    if g.achievements:
+        print('\nAchievements earned:')
+        for a in sorted(g.achievements):
+            print('-', a)
+    print('\nThank you for playing (simulated)!')
+
+
+if __name__ == '__main__':
+    main()
