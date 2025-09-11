@@ -1,74 +1,6 @@
-"""
-Food Gacha Game (Non-interactive / Sandbox-safe version)
-
-This file is a drop-in replacement for the original "Food Gacha Game" script but rewritten
-so it does NOT call input() by default (input() causes OSError in sandboxed environments).
-
-Features:
- - Rarity system with visual stars
- - Pity system (guaranteed Rare+ every 10 pulls)
- - Food Dex that tracks discovered foods and counts
- - Multi-pulls (batch rolls)
- - Combos & Evolutions (combine pulled items into new items)
- - Duplicate reactions
- - Mini-quests and achievements
- - Simulated command mode (safe for non-interactive environments)
- - A small test-suite that runs in simulated mode to verify core features
-
-How to use:
- - By default the script runs in SIMULATED mode (no input()). This avoids the OSError
-   in sandboxed environments. To provide custom commands, either:
-     1) create a file named `commands.txt` with one command per line, or
-     2) edit SIMULATED_COMMANDS below.
- - To run interactively on your own machine (where input() works), set SIMULATED = False
-   at the top of this file. The script will then try to fall back to interactive input
-   if a TTY is available.
-
-Commands supported in simulation & interactive mode:
- - "" (empty string) or "pull" or "1" -> single pull
- - "10" or "multi" or "multi N" -> multi-pull (default 10 if no N given)
- - "FORCE <item name>" -> force-add an item (useful for testing combos)
- - "dex" -> show Food Dex
- - "ach" -> show achievements
- - "help" -> show commands
- - "quit" -> exit
- - "test" -> run built-in tests (only in SIMULATED mode by default)
-
-Note: This file was rewritten to fix the OSError caused by input() in sandboxed environments.
-"""
-
-import os
-import sys
 import time
 import random
 from collections import defaultdict
-
-# -------------------------
-# Configuration
-# -------------------------
-# Run in simulated mode by default to avoid input() in restricted environments.
-SIMULATED = True
-# If you want interactive mode on your local machine, set SIMULATED = False.
-# SIMULATED = False
-
-# Default simulated commands (will be used if commands.txt is missing)
-SIMULATED_COMMANDS = [
-    '',                 # single pull
-    '10',               # multi-pull (10)
-    'FORCE Bread crumbs',
-    'FORCE Cheese',     # should trigger a combo (Cheese Sandwich)
-    'dex',
-    'ach',
-    'multi 5',
-    'FORCE Golden Truffle',
-    'FORCE Golden Truffle', # duplicate reaction & achievement triggers
-    'dex',
-    'test',             # run built-in tests (safe, deterministic)
-    'quit'
-]
-
-# If commands.txt exists, we'll prefer that (one command per line)
-COMMANDS_FILE = 'commands.txt'
 
 # -------------------------
 # Game Implementation (class-based for testability)
@@ -86,12 +18,12 @@ class FoodGachaGame:
         self.q5 = "VALID PLAYA — that's a cool drink. 🧊😎"
         self.q6 = "My recipe just for you. 🍨🎯"
 
-        # Item pools (copied and cleaned from the original script)
+        # Item pools
         self.items = [
             # Commons
             'Burger', 'Salad', 'Apple', 'Soggy Lettuce', 'Bread crumbs', 'Banana', 'Strawberry', 'Grapes', 'Honeydew',
             'Pear', 'Toast', 'Yogurt', 'Carrot Sticks', 'Celery Sticks', 'Boiled Corn', 'Oatmeal', 'Cucumber Slices',
-            'Granola Bar', 'Apple Sauce', 'Peanut Butter', 'Rice Cakes', 'Fruit Salad',
+            'Granola Bar', 'Apple Sauce', 'Peanut Butter', 'Rice Cakes', 'Fruit Salad','Jelly'
             # Uncommons
             'tomatoe', 'Pizza Slice', 'Onion Rings', 'Mysterious Meatball', 'Pineapple', 'Watermelon', 'Mango', 'Peach',
             'Cherry', 'Kiwi', 'Chips and Salsa', 'Fried Rice', 'Ramen', 'Tacos', 'Avocado', 'Blueberry', 'Blackberry',
@@ -106,11 +38,11 @@ class FoodGachaGame:
             'Cosmic Crème Brûlée', 'Divine Doughnut', 'Secret Saffron Rice', 'Noble Nougat'
         ]
 
-        # Rarity classification (explicit lists for clarity)
+        # Rarity classification
         self.rarity = {
             'Common': ['Burger','Salad','Apple','Soggy Lettuce','Bread crumbs','Banana','Strawberry','Grapes','Honeydew',
                        'Pear','Toast','Yogurt','Carrot Sticks','Celery Sticks','Boiled Corn','Oatmeal','Cucumber Slices',
-                       'Granola Bar','Apple Sauce','Peanut Butter','Rice Cakes','Fruit Salad'],
+                       'Granola Bar','Apple Sauce','Peanut Butter','Rice Cakes','Fruit Salad','Jelly'],
             'Uncommon': ['tomatoe','Pizza Slice','Onion Rings','Mysterious Meatball','Pineapple','Watermelon','Mango','Peach',
                          'Cherry','Kiwi','Chips and Salsa','Fried Rice','Ramen','Tacos','Avocado','Blueberry','Blackberry',
                          'Nectarine','Olives','Plum','Sushi','Waffles','Zucchini Bread'],
@@ -121,7 +53,7 @@ class FoodGachaGame:
                        'Cosmic Crème Brûlée','Divine Doughnut','Secret Saffron Rice','Noble Nougat']
         }
 
-        # Precompute weights aligned to items list
+        # Precompute weights
         self.weights = []
         for food in self.items:
             if food in self.rarity['Common']:
@@ -135,31 +67,31 @@ class FoodGachaGame:
             elif food in self.rarity['Secret']:
                 self.weights.append(0.05)
             else:
-                # default fallback
                 self.weights.append(1)
 
         # Trackers
-        self.inventory = defaultdict(int)   # item -> count
-        self.food_dex = set()               # unique items discovered (includes combined items)
+        self.inventory = defaultdict(int)
+        self.food_dex = set()
         self.pulls = 0
         self.pity_counter = 0
         self.achievements = set()
         self.completed_quests = set()
-        self.extra_rolls = 0                # rolls awarded by quests
+        self.extra_rolls = 0
 
-        # Combos: when these ingredients are present, they combine into a new special item
-        # For simplicity each combo uses 1 unit of each ingredient
+        # Combos
         self.combos = {
             tuple(sorted(['Bread crumbs','Cheese'])): 'Cheese Sandwich',
             tuple(sorted(['Banana','Chocolate Cake'])): 'Banana Split',
             tuple(sorted(['Rice Cakes','Peanut Butter'])): 'PB Rice Cake',
             tuple(sorted(['tomatoe','Cheese','Bread crumbs'])): 'Bruschetta'
+            tuple(sorted(['Peanut Butter', 'Jelly', 'Bread crumbs'])): 'PB Sandwich'
         }
 
         # Mini-quests
         self.quests = {
             'Fruit Trio': {'required': ['Banana','Strawberry','Mango'], 'reward_free_rolls': 1},
             'Fast Food Fan': {'required': ['Burger','Pizza Slice','Tacos'], 'achievement': '🍔 Fast Food King'}
+            'Noblity': {'required': ['Noble Nougat', 'Secret Saffron Rice'],'achievement': 'reward_free_rolls': 5}
         }
 
     # ---------- Helpers ----------
@@ -180,11 +112,9 @@ class FoodGachaGame:
 
     # ---------- Core actions ----------
     def roll(self):
-        """Perform one gacha roll. Returns (item, rarity)."""
         self.pulls += 1
         self.pity_counter += 1
 
-        # Pity: guaranteed Rare or better every 10 pulls
         if self.pity_counter >= 10:
             choices = list(self.rarity['Rare']) + list(self.rarity['Legendary']) + list(self.rarity['Secret'])
             item = self.rng.choice(choices)
@@ -192,84 +122,59 @@ class FoodGachaGame:
         else:
             item = self.rng.choices(self.items, weights=self.weights, k=1)[0]
 
-        # Add to inventory + dex
         self.inventory[item] += 1
         self.food_dex.add(item)
 
         r = self.get_rarity(item)
         stars = self.rarity_stars(r)
 
-        # ASCII effect for high rarity
         if r in ['Legendary', 'Secret']:
             print("\n🌟✨✨✨ A RARE FIND! ✨✨✨🌟")
-
         print(f"\n🍽️ You got: {item} [{r} {stars}]")
 
-        # Duplicate reaction
         if self.inventory[item] > 1:
             print(f"(Again?! The {item} loves you 😅)")
 
-        # Check combos, quests, achievements, and process any extra rolls
         self._process_post_roll()
-
         return item, r
 
     def multi_pull(self, n=10):
-        results = []
         print(f"\n🔮 Rolling {n} times...")
         for _ in range(n):
-            results.append(self.roll())
-            # small pacing; in sandbox it's fine but can be removed
+            self.roll()
             time.sleep(0.05)
-        return results
 
     def force_add(self, item):
-        """Directly add an item (useful for testing combos or seeding the player's inventory)."""
-        if item not in self.items and item not in self.combos.values():
-            print(f"(Warning) Forcing unknown item: {item} — adding to dex/inventory anyway.")
         self.inventory[item] += 1
         self.food_dex.add(item)
         print(f"\n[FORCED] Added: {item}")
-        # After force-add we still want combos/quests to trigger
         self._process_post_roll(force=True)
 
     # ---------- Post-roll processing ----------
     def _process_post_roll(self, force=False):
-        # Check for combos first (they may consume ingredients)
         self._check_combos()
-        # Check quests which may award extra rolls or achievements
         self._check_quests()
-        # Check achievements
         self._check_achievements()
-        # Process extra rolls if awarded
         while self.extra_rolls > 0:
             self.extra_rolls -= 1
             print('\n🎁 Quest reward: bonus roll!')
-            # Use a direct roll but avoid infinite recursion (roll handles its own extra rolls)
             self.roll()
 
     def _check_combos(self):
-        # Look for possible combos; allow multiple repetitions if ingredients permit
         changed = True
         while changed:
             changed = False
             for req_tuple, result in list(self.combos.items()):
-                # req_tuple is a tuple of ingredient names (sorted)
                 reqs = list(req_tuple)
-                # Check if we have at least 1 of each required ingredient
                 if all(self.inventory.get(r, 0) >= 1 for r in reqs):
-                    # Consume one of each ingredient
                     for r in reqs:
                         self.inventory[r] -= 1
                         if self.inventory[r] <= 0:
-                            # keep 0 instead of negative
                             del self.inventory[r]
-                    # Add the combined item
                     self.inventory[result] += 1
                     self.food_dex.add(result)
                     print(f"\n🧩 Combo Unlocked: {result} (from {', '.join(reqs)})")
                     changed = True
-                    # After finding a combo, break to re-evaluate from start (handles overlapping combos safely)
                     break
 
     def _check_quests(self):
@@ -280,28 +185,27 @@ class FoodGachaGame:
             if all(self.inventory.get(r, 0) >= 1 for r in required):
                 print(f"\n✅ Quest completed: {name}")
                 self.completed_quests.add(name)
-                # rewards
                 if desc.get('reward_free_rolls'):
                     self.extra_rolls += desc['reward_free_rolls']
                 if desc.get('achievement'):
                     self.achievements.add(desc['achievement'])
 
     def _check_achievements(self):
-        # Master Chef: collected all base items + combined items
         total_known = set(self.items) | set(self.combos.values())
         if total_known.issubset(self.food_dex):
             self.achievements.add('🍽️ Master Chef — Collected All Foods!')
-
-        # Example achievements
         if all(x in self.food_dex for x in ['Banana','Strawberry','Mango']):
             self.achievements.add('🥭 Fruit Master')
         if all(x in self.food_dex for x in ['Golden Truffle','Dragonfruit Tart']):
             self.achievements.add('💎 Legendary Connoisseur')
-
+        if all(x in self.food_dex for x in ['Golden Nugget', 'Divine Doughnut']):
+             self.achievements.add('GOLDEN Donut')
+        if all(x in self.food_dex for x in ['Secret Saffron Rice', 'Fried Egg'])
+             self.achievements.add('Egg fried Saffron Rice')
+            
     # ---------- UI helpers ----------
     def show_dex(self):
         print(f"\n📖 Food Dex: {len(self.food_dex)}/{len(set(self.items) | set(self.combos.values()))} discovered")
-        # Show counts in inventory for readability
         rows = []
         for item in sorted(self.food_dex):
             rows.append(f"{item} x{self.inventory.get(item, 0)}")
@@ -316,129 +220,44 @@ class FoodGachaGame:
         else:
             print('\nNo achievements yet!')
 
-    # ---------- Simulation runner ----------
-    def run_commands(self, commands):
-        """Execute a list of textual commands (does not use input()).
-        Returns when 'quit' command is encountered or commands are exhausted.
-        """
-        for raw in commands:
-            cmd = raw.strip()
-            print(f"\n> simulated input: {cmd}")
-
-            # support various synonyms
-            if cmd == '' or cmd.lower() in ('1', 'pull', 'enter'):
-                self.roll()
-            elif cmd.lower().startswith('multi'):
-                # allow 'multi' or 'multi N'
-                parts = cmd.split()
-                n = 10
-                if len(parts) >= 2 and parts[1].isdigit():
-                    n = int(parts[1])
-                self.multi_pull(n)
-            elif cmd.lower() == '10':
-                self.multi_pull(10)
-            elif cmd.lower().startswith('force '):
-                item = cmd[6:]
-                self.force_add(item)
-            elif cmd.lower() == 'dex':
-                self.show_dex()
-            elif cmd.lower() == 'ach':
-                self.show_achievements()
-            elif cmd.lower() in ('help', '?'):
-                print('\nCommands: [Enter/pull] single, 10 or multi N, FORCE <item>, dex, ach, test, quit')
-            elif cmd.lower() == 'test':
-                # run deterministic self-tests
-                run_tests()
-            elif cmd.lower() == 'quit':
-                print('\nExiting simulation...')
-                break
-            else:
-                print(f"(unknown command: {cmd})")
-
-# -------------------------
-# Built-in tests (deterministic)
-# -------------------------
-
-def run_tests():
-    print('\n--- Running built-in tests (deterministic) ---')
-
-    # Test 1: combo creation via force_add
-    g = FoodGachaGame(rng_seed=123)
-    g.force_add('Bread crumbs')
-    g.force_add('Cheese')
-    assert 'Cheese Sandwich' in g.food_dex, 'Combo test failed: Cheese Sandwich not created'
-    print('Test 1 passed: Combo creation (Cheese Sandwich)')
-
-    # Test 2: pity system guarantees Rare+ on 10th pull
-    g2 = FoodGachaGame(rng_seed=1)
-    g2.pity_counter = 9
-    item, r = g2.roll()
-    assert r in ('Rare', 'Legendary', 'Secret'), f'Pity test failed: got rarity {r}'
-    print('Test 2 passed: Pity system (10th pull guaranteed Rare+)')
-
-    # Test 3: duplicate detection increments inventory
-    g3 = FoodGachaGame(rng_seed=2)
-    g3.force_add('Golden Truffle')
-    g3.force_add('Golden Truffle')
-    assert g3.inventory['Golden Truffle'] >= 2, 'Duplicate test failed: inventory not incremented'
-    print('Test 3 passed: Duplicate inventory increments')
-
-    print('All tests passed!')
-    print('--- End tests ---\n')
-
 # -------------------------
 # Main execution
 # -------------------------
 
 def main():
-    # Prepare commands list (prefer commands.txt if present)
-    commands = []
-    if os.path.exists(COMMANDS_FILE):
-        try:
-            with open(COMMANDS_FILE, 'r', encoding='utf-8') as f:
-                commands = [line.rstrip('\n') for line in f if line.strip() != '']
-            print(f"Loaded {len(commands)} commands from {COMMANDS_FILE}")
-        except OSError:
-            print(f"Could not read {COMMANDS_FILE}; falling back to built-in simulated commands.")
-            commands = SIMULATED_COMMANDS.copy()
-    else:
-        commands = SIMULATED_COMMANDS.copy()
-
-    # If SIMULATED is False and a TTY is present, fall back to the original interactive loop
     g = FoodGachaGame(rng_seed=42)
 
-    if not SIMULATED:
-        try:
-            if sys.stdin.isatty():
-                print('Interactive mode: type commands (press Enter for a single pull). Type "quit" to exit.')
-                while True:
-                    cmd = input("\nPress [Enter] for 1 pull, type '10' for multi-pull, 'dex' to view Food Dex, 'ach' for achievements, or 'quit' to stop: ").strip()
-                    if cmd == '':
-                        g.roll()
-                    elif cmd.lower() == 'quit':
-                        break
-                    else:
-                        g.run_commands([cmd])
-                return
-        except Exception:
-            print('Interactive input not available; switching to simulated mode.')
+    print('Interactive mode: press Enter for 1 pull, type "10" for multi-pull, "multi N" for custom multi, "dex" for Food Dex, "ach" for achievements, or "quit" to exit.')
+    while True:
+        cmd = input("\n>> ").strip()
 
-    # Simulated / file-driven execution (safe in sandbox)
-    print('\nStarting simulated run (no interactive input)\n')
-    g.run_commands(commands)
+        if cmd == "":   # just pressing Enter
+            g.roll()
+        elif cmd == "10":
+            g.multi_pull(10)
+        elif cmd.lower().startswith("multi"):
+            parts = cmd.split()
+            n = 10 if len(parts) == 1 else int(parts[1])
+            g.multi_pull(n)
+        elif cmd.lower() == "dex":
+            g.show_dex()
+        elif cmd.lower() == "ach":
+            g.show_achievements()
+        elif cmd.lower() == "quit":
+            break
+        else:
+            print(f"(unknown command: {cmd})")
 
-    # Final summary
-    print('\n--- Session Summary ---')
-    print(f'Total pulls performed: {g.pulls}')
-    print(f'Unique items discovered: {len(g.food_dex)}')
+    print("\n--- Session Summary ---")
+    print(f"Total pulls performed: {g.pulls}")
+    print(f"Unique items discovered: {len(g.food_dex)}")
     if g.food_dex:
-        print('Sample of discovered items:', ', '.join(sorted(list(g.food_dex))[:10]))
+        print("Sample of discovered items:", ', '.join(sorted(list(g.food_dex))[:10]))
     if g.achievements:
-        print('\nAchievements earned:')
+        print("\nAchievements earned:")
         for a in sorted(g.achievements):
-            print('-', a)
-    print('\nThank you for playing (simulated)!')
-
+            print("-", a)
+    print("\nThank you for playing!")
 
 if __name__ == '__main__':
     main()
